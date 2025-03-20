@@ -27,17 +27,23 @@
         h1 {
             color: #222;
         }
-        input {
+        input, button {
             margin: 10px 0;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            cursor: pointer;
         }
-        #image-container img {
+        #image-container img, #captured-image {
             max-width: 100%;
             border-radius: 10px;
             margin-top: 10px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        #video {
+            width: 100%;
+            border-radius: 10px;
+            display: none;
         }
         #label-container div {
             font-size: 20px;
@@ -60,6 +66,9 @@
     <div class="container">
         <h1>Nhận dạng 5 loại xe hơi</h1>
         <input type="file" id="imageInput" accept="image/*" />
+        <button id="openCamera">Mở Camera</button>
+        <video id="video" autoplay></video>
+        <button id="captureButton" style="display: none;">Chụp ảnh</button>
         <div id="loading">Đang xử lý. Vui lòng đợi...</div>
         <div id="image-container"></div>
         <div id="label-container"></div>
@@ -68,8 +77,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
-        const MODEL_URL = "https://teachablemachine.withgoogle.com/models/2jyArQKf6/";
+        const MODEL_URL = "https://teachablemachine.withgoogle.com/models/8qC-4rFSH/";
         let model, labelContainer, maxPredictions;
+        const video = document.getElementById("video");
+        const captureButton = document.getElementById("captureButton");
+        const openCameraButton = document.getElementById("openCamera");
+        let stream;
 
         async function init() {
             document.getElementById("loading").style.display = "block";
@@ -110,6 +123,29 @@
                 };
                 reader.readAsDataURL(file);
             }
+        });
+
+        openCameraButton.addEventListener("click", async function() {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            video.style.display = "block";
+            captureButton.style.display = "block";
+        });
+
+        captureButton.addEventListener("click", function() {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const img = document.createElement("img");
+            img.src = canvas.toDataURL("image/png");
+            img.width = 200;
+            img.onload = async function() {
+                document.getElementById("image-container").innerHTML = "";
+                document.getElementById("image-container").appendChild(img);
+                await predictImage(img);
+            };
         });
 
         init();
